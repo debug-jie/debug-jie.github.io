@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://debug-jie.github.io</id>
-    <title>逆向记录</title>
-    <updated>2020-09-05T12:38:59.216Z</updated>
+    <title>逆向笔记</title>
+    <updated>2020-09-05T12:41:47.557Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://debug-jie.github.io"/>
     <link rel="self" href="https://debug-jie.github.io/atom.xml"/>
     <subtitle>温故而知新</subtitle>
     <logo>https://debug-jie.github.io/images/avatar.png</logo>
     <icon>https://debug-jie.github.io/favicon.ico</icon>
-    <rights>All rights reserved 2020, 逆向记录</rights>
+    <rights>All rights reserved 2020, 逆向笔记</rights>
+    <entry>
+        <title type="html"><![CDATA[Frida]]></title>
+        <id>https://debug-jie.github.io/post/frida/</id>
+        <link href="https://debug-jie.github.io/post/frida/">
+        </link>
+        <updated>2020-09-05T12:40:40.000Z</updated>
+        <content type="html"><![CDATA[<ul>
+<li>dumpso</li>
+</ul>
+]]></content>
+    </entry>
 </feed>
