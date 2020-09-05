@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://debug-jie.github.io</id>
     <title>逆向笔记</title>
-    <updated>2020-09-05T12:42:24.983Z</updated>
+    <updated>2020-09-05T16:40:25.731Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://debug-jie.github.io"/>
     <link rel="self" href="https://debug-jie.github.io/atom.xml"/>
@@ -16,8 +16,126 @@
         <link href="https://debug-jie.github.io/post/frida/">
         </link>
         <updated>2020-09-05T12:40:40.000Z</updated>
-        <content type="html"><![CDATA[<ul>
-<li>dumpso</li>
+        <content type="html"><![CDATA[<h2 id="java-堆栈">Java 堆栈</h2>
+<pre><code class="language-javascript">console.log(Java.use(&quot;android.util.Log&quot;).getStackTraceString(Java.use(&quot;java.lang.Throwable&quot;).$new()));
+</code></pre>
+<h2 id="dump-so">Dump so</h2>
+<ul>
+<li>获取所有module信息<pre><code class="language-javascript">Process.enumerateModules();
+</code></pre>
+</li>
+<li>写入文件<pre><code class="language-javascript">var fd = new File(&quot;/sdcard/libxx.so&quot;,&quot;wb&quot;);	
+fd.write(new NativePointer(0x94300000).readByteArray(900368));
+fd.close();
+</code></pre>
+</li>
+</ul>
+<h2 id="读取-stdstring">读取 std::string</h2>
+<pre><code class="language-javascript">function readStdString(str: any) {
+	const isTiny = (str.readU8() &amp; 1) === 0;
+	if (isTiny) {
+	    return str.add(1).readUtf8String();
+	}
+	return str.add(2 * 	 		Process.pointerSize).readPointer().readUtf8String();
+}
+</code></pre>
+<h2 id="findjninativepointer">FindJNINativePointer</h2>
+<pre><code class="language-javascript">function findJNINativePointer(classname,funcname){
+    Java.perform(function(){
+        var method=null;
+        Java.enumerateClassLoaders({
+            onMatch: function (loader) {
+                try {
+                    var loadclass = loader.loadClass(classname);
+                    var methods = loadclass.getDeclaredMethods();
+                    for (var i in methods) {                       
+                        if(funcname.indexOf(methods[i].getName())&gt;=0){
+                            method=methods[i];
+                        }
+                    }
+                } catch (e) {
+                }
+
+            },
+            onComplete: function () {}
+        });
+                
+        var jnienv = Java.vm.getEnv();
+        var ArtMethodptr = jnienv.fromReflectedMethod(ptr(method.$h));
+
+        var ptrdata_=null;
+        if(Process.arch==&quot;arm64&quot;){
+            ptrdata_= ArtMethodptr.add(24+Process.pointerSize).readPointer();
+        }else if(Process.arch==&quot;arm&quot;){
+            ptrdata_= ArtMethodptr.add(20+Process.pointerSize).readPointer();
+        }                
+        console.log(&quot;JNI EntryPoint:&quot;,ptrdata_);       
+    });
+}
+</code></pre>
+<h2 id="arraybuffer2hexstr">arraybuffer2hexstr</h2>
+<pre><code class="language-javascript">function arraybuffer2hexstr(buffer) 
+{
+	var hexArr = Array.prototype.map.call(
+		new Uint8Array(buffer),
+      	function (bit) {
+        	return ('00' + bit.toString(16)).slice(-2)
+      	}
+    )
+    return hexArr.join('');
+}
+</code></pre>
+<h2 id="sslkey">sslkey</h2>
+<ul>
+<li>寻找ssl库<pre><code class="language-javascript">function find_ssl_library(){  
+	var modules=Process.enumerateModules();
+	for(var i=0;i&lt;modules.length;++i){
+    	//frida 不能处理这个库，否则程序崩溃
+    	if(modules[i].name.indexOf(&quot;linux-vdso&quot;)&gt;=0){
+        	continue;
+    	}
+    	var addr_SSL_do_handshake= modules[i].findExportByName(&quot;SSL_do_handshake&quot;);
+   		if(addr_SSL_do_handshake!=null){
+        	console.log(&quot;find ssl library:&quot;,modules[i].name);
+    	}
+	}
+}
+</code></pre>
+</li>
+<li>hook ssl 库<pre><code class="language-javascript">function hook_ssl_library(module){  
+	var addr_SSL_do_handshake= module.findExportByName(&quot;SSL_do_handshake&quot;);
+	var addr_SSL_get_session= module.findExportByName(&quot;SSL_get_session&quot;);
+	var addr_SSL_get_client_random= module.findExportByName(&quot;SSL_get_client_random&quot;);
+	var addr_SSL_SESSION_get_master_key= module.findExportByName(&quot;SSL_SESSION_get_master_key&quot;);
+
+	var func_SSL_get_session=new NativeFunction(addr_SSL_get_session,&quot;pointer&quot;, [&quot;pointer&quot;]);
+	var func_SSL_get_client_random=new NativeFunction(addr_SSL_get_client_random,&quot;int&quot;, [&quot;pointer&quot;,&quot;pointer&quot;,&quot;int&quot;]);
+	var func_SSL_SESSION_get_master_key=new NativeFunction(addr_SSL_SESSION_get_master_key,&quot;int&quot;, [&quot;pointer&quot;,&quot;pointer&quot;,&quot;int&quot;]);
+	Interceptor.attach(addr_SSL_do_handshake,{
+    	onEnter:function(args){
+        	this.ssl=args[0];
+    	},
+   	 	onLeave:function(retval){
+        	if(retval==1){      //握手成功
+            	var random_buf=Memory.alloc(0x100);
+            	var random_size=func_SSL_get_client_random(this.ssl,random_buf,0x100);
+            	var client_random=random_buf.readByteArray(random_size);
+            	var session=func_SSL_get_session(this.ssl);
+            
+            	var master_key_buf=Memory.alloc(0x100);
+            	var master_key_size=func_SSL_SESSION_get_master_key(session,master_key_buf,0x100);
+            	var master_key=master_key_buf.readByteArray(master_key_size);
+            
+            	var client_random_hexstr=arraybuffer2hexstr(client_random);
+            	var master_key_hexstr=arraybuffer2hexstr(master_key);
+            
+            	console.log(&quot;CLIENT_RANDOM &quot;+client_random_hexstr+&quot; &quot;+master_key_hexstr);
+        	}            
+    	}
+	})
+}
+</code></pre>
+</li>
 </ul>
 ]]></content>
     </entry>
