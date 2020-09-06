@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://debug-jie.github.io</id>
     <title>逆向笔记</title>
-    <updated>2020-09-05T16:52:39.847Z</updated>
+    <updated>2020-09-06T07:03:10.328Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://debug-jie.github.io"/>
     <link rel="self" href="https://debug-jie.github.io/atom.xml"/>
@@ -10,6 +10,33 @@
     <logo>https://debug-jie.github.io/images/avatar.png</logo>
     <icon>https://debug-jie.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, 逆向笔记</rights>
+    <entry>
+        <title type="html"><![CDATA[协议分析]]></title>
+        <id>https://debug-jie.github.io/post/xie-yi-fen-xi/</id>
+        <link href="https://debug-jie.github.io/post/xie-yi-fen-xi/">
+        </link>
+        <updated>2020-09-06T07:02:36.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="burp">burp</h2>
+<ul>
+<li>抓包设置：<br>
+1.proxy/options窗口，设置监听ip端口<br>
+2.export CA certificate, 上传到手机安装<br>
+3.proxy/Intercept 关闭拦截(Intercept is off)</li>
+<li>设置系统代理<br>
+User options/Connections/Upstream Proxy Servers<br>
+配置例如：<br>
+Destination host : *<br>
+Proxy host : 127.0.0.1<br>
+Proxy port ：10080</li>
+</ul>
+<h2 id="复制个人证书到系统目录">复制个人证书到系统目录</h2>
+<pre><code class="language-javascript">cd /data/misc/user/0/cacerts-added
+mount -o remount,rw /
+cp * /etc/security/cacerts/
+mount -o remount,ro /
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Frida]]></title>
         <id>https://debug-jie.github.io/post/frida/</id>
